@@ -210,5 +210,9 @@ export function withFileListPlugin(
 
 export default TurbopackFileListPlugin;
 
-// Export the loader path for easy reference in Next.js config
+// Export the loader paths for easy reference in Next.js config
 export const fileTrackerLoaderPath = require.resolve('./file-tracker-loader');
+export const textExtractionLoaderPath = require.resolve('./text-extraction-loader');
+
+// Export string extraction functions
+export { consolidateStrings } from './strings-manager';
