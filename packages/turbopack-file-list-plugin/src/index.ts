@@ -60,111 +60,43 @@ function findMonorepoRoot(startDir: string): string {
 }
 
 /**
- * Decodes a Turbopack chunk filename to extract the original source file path
- * Example: "apps_web_src_app_layout_tsx_a4dff4b0._.js" -> "apps/web/src/app/layout.tsx"
+ * Reads the tracked files from the temp file created by the file-tracker-loader
  */
-function decodeChunkFilename(chunkName: string): string | null {
-  // Remove the hash suffix and extension
-  // Example: apps_web_src_app_layout_tsx_a4dff4b0._.js -> apps_web_src_app_layout_tsx
-  const withoutExt = chunkName.replace(/\.[^.]+$/, '');  // Remove .js
-  const withoutUnderscore = withoutExt.replace(/\._$/, '');  // Remove ._
-  let withoutHash = withoutUnderscore.replace(/_[a-f0-9]{8}$/, '');  // Remove _a4dff4b0
+function readTrackedFiles(buildDir: string): string[] {
+  const tempFilePath = path.join(buildDir, '.turbopack-file-tracker.tmp');
 
-  // Convert underscores to path separators and add proper extension
-  // Detect the file type from the pattern
-  let ext = '';
-  if (withoutHash.endsWith('_tsx')) {
-    ext = '.tsx';
-    withoutHash = withoutHash.slice(0, -4);
-  } else if (withoutHash.endsWith('_ts')) {
-    ext = '.ts';
-    withoutHash = withoutHash.slice(0, -3);
-  } else if (withoutHash.endsWith('_jsx')) {
-    ext = '.jsx';
-    withoutHash = withoutHash.slice(0, -4);
-  } else if (withoutHash.endsWith('_js')) {
-    ext = '.js';
-    withoutHash = withoutHash.slice(0, -3);
-  } else if (withoutHash.endsWith('_css')) {
-    ext = '.css';
-    withoutHash = withoutHash.slice(0, -4);
+  if (!fs.existsSync(tempFilePath)) {
+    console.warn('Warning: .turbopack-file-tracker.tmp not found. Make sure the file-tracker-loader is configured.');
+    return [];
   }
-
-  if (!ext) {
-    return null;
-  }
-
-  // Convert underscores to path separators
-  const sourcePath = withoutHash.replace(/_/g, '/') + ext;
-
-  return sourcePath;
-}
-
-/**
- * Extracts source files from Next.js build trace files
- */
-function extractSourceFilesFromTrace(traceFile: string, projectRoot: string): string[] {
-  const sourceFiles = new Set<string>();
 
   try {
-    const traceData = JSON.parse(fs.readFileSync(traceFile, 'utf-8'));
-    const traceDir = path.dirname(traceFile);
+    const content = fs.readFileSync(tempFilePath, 'utf-8');
+    const lines = content.split('\n').filter((line: string) => line.trim().length > 0);
 
-    // Trace files contain a list of all files that were accessed during the build
-    if (traceData.files && Array.isArray(traceData.files)) {
-      traceData.files.forEach((relativeFilePath: string) => {
-        // Check if this is a chunk file that encodes a source file path
-        const fileName = path.basename(relativeFilePath);
+    // Deduplicate using a Set (the loader may write the same file multiple times)
+    const uniqueFiles = new Set<string>(lines);
 
-        // Look for chunk files in the ssr directory
-        if (relativeFilePath.includes('chunks/ssr/') && fileName.includes('_')) {
-          const decodedPath = decodeChunkFilename(fileName);
-          if (decodedPath) {
-            // Verify the file actually exists
-            const fullPath = path.join(projectRoot, decodedPath);
-            if (fs.existsSync(fullPath)) {
-              sourceFiles.add(decodedPath);
-            }
-          }
-        }
-      });
-    }
+    return Array.from(uniqueFiles);
   } catch (error) {
-    console.warn(`Warning: Could not parse trace file ${traceFile}:`, error);
+    console.warn('Warning: Could not read .turbopack-file-tracker.tmp:', error);
+    return [];
   }
-
-  return Array.from(sourceFiles);
 }
 
 /**
- * Collects all trace files from the .next directory
+ * Cleans up the temp file after processing
  */
-function collectTraceFiles(nextDir: string): string[] {
-  const traceFiles: string[] = [];
+function cleanupTempFile(buildDir: string): void {
+  const tempFilePath = path.join(buildDir, '.turbopack-file-tracker.tmp');
 
-  if (!fs.existsSync(nextDir)) {
-    return traceFiles;
-  }
-
-  function walk(dir: string) {
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-
-    for (const entry of entries) {
-      const fullPath = path.join(dir, entry.name);
-
-      if (entry.isDirectory()) {
-        // Skip cache directory to avoid unnecessary processing
-        if (entry.name !== 'cache') {
-          walk(fullPath);
-        }
-      } else if (entry.name.endsWith('.nft.json')) {
-        traceFiles.push(fullPath);
-      }
+  if (fs.existsSync(tempFilePath)) {
+    try {
+      fs.unlinkSync(tempFilePath);
+    } catch (error) {
+      console.warn('Warning: Could not delete temp file:', error);
     }
   }
-
-  walk(nextDir);
-  return traceFiles;
 }
 
 /**
@@ -182,9 +114,7 @@ export async function generateFileList(
     return;
   }
 
-  // Find the monorepo root for resolving source file paths
-  const monorepoRoot = findMonorepoRoot(buildDir);
-  console.log(`Using monorepo root: ${monorepoRoot}`);
+  console.log(`\nReading tracked files from build...`);
 
   const fileList: {
     buildTime: string;
@@ -200,22 +130,15 @@ export async function generateFileList(
     },
   };
 
-  // Collect all trace files from the .next directory
-  const traceFiles = collectTraceFiles(nextDir);
+  // Read the tracked files from the temp file created by the loader
+  const trackedFiles = readTrackedFiles(buildDir);
 
-  console.log(`\nFound ${traceFiles.length} trace files to analyze...`);
-
-  // Extract source files from all trace files
-  const allSourceFiles = new Set<string>();
-
-  for (const traceFile of traceFiles) {
-    const sourceFiles = extractSourceFilesFromTrace(traceFile, monorepoRoot);
-    sourceFiles.forEach((file) => allSourceFiles.add(file));
-  }
-
-  // Convert Set to sorted array
-  fileList.sourceFiles = Array.from(allSourceFiles).sort();
+  // Sort the files for consistent output
+  fileList.sourceFiles = trackedFiles.sort();
   fileList.stats.totalSourceFiles = fileList.sourceFiles.length;
+
+  // Clean up the temp file
+  cleanupTempFile(buildDir);
 
   // Write the file list to the specified output path
   const fullOutputPath = path.join(buildDir, outputPath);
@@ -286,3 +209,6 @@ export function withFileListPlugin(
 }
 
 export default TurbopackFileListPlugin;
+
+// Export the loader path for easy reference in Next.js config
+export const fileTrackerLoaderPath = require.resolve('./file-tracker-loader');
