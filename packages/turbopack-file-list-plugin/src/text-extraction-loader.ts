@@ -209,6 +209,32 @@ export default function textExtractionLoader(this: any, source: string): string 
     // Find the component name
     const componentName = findComponentName(ast);
 
+    // Check if the component uses useLocale and extracts locale variable
+    let hasLocaleVariable = false;
+    traverse(ast, {
+      VariableDeclarator(path: NodePath<t.VariableDeclarator>) {
+        // Check for: const { locale } = useLocale()
+        if (
+          t.isObjectPattern(path.node.id) &&
+          t.isCallExpression(path.node.init) &&
+          t.isIdentifier(path.node.init.callee) &&
+          path.node.init.callee.name === 'useLocale'
+        ) {
+          // Check if 'locale' is one of the destructured properties
+          const hasLocale = path.node.id.properties.some(
+            (prop) =>
+              t.isObjectProperty(prop) &&
+              t.isIdentifier(prop.key) &&
+              prop.key.name === 'locale'
+          );
+          if (hasLocale) {
+            hasLocaleVariable = true;
+            path.stop();
+          }
+        }
+      },
+    });
+
     // Track if we made any changes
     let hasChanges = false;
 
@@ -233,12 +259,17 @@ export default function textExtractionLoader(this: any, source: string): string 
           jsxPath
         );
 
-        // Replace the text with {t('hash')}
+        // Replace the text with {t('hash')} or {t('hash', locale)}
         // We need to replace the JSXText node with a JSXExpressionContainer
-        // containing a call to t(hash)
-        const tCallExpression = t.callExpression(t.identifier('t'), [
-          t.stringLiteral(hash),
-        ]);
+        // containing a call to t(hash) or t(hash, locale)
+        const tCallArgs: Array<t.StringLiteral | t.Identifier> = [t.stringLiteral(hash)];
+
+        // If component uses locale variable, add it as second parameter
+        if (hasLocaleVariable) {
+          tCallArgs.push(t.identifier('locale'));
+        }
+
+        const tCallExpression = t.callExpression(t.identifier('t'), tCallArgs);
 
         const jsxExpression = t.jsxExpressionContainer(tCallExpression);
 

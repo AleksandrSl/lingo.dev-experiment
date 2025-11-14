@@ -4,6 +4,13 @@
   "description": "A plugin for Next.js with Turbopack to generate a list of all files used in the build",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./client": "./dist/client.js",
+    "./dist/runtime": "./dist/runtime.js",
+    "./dist/file-tracker-loader": "./dist/file-tracker-loader.js",
+    "./dist/text-extraction-loader": "./dist/text-extraction-loader.js"
+  },
   "bin": {
     "turbopack-file-list-plugin": "./dist/cli.js"
   },

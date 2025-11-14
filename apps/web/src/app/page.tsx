@@ -1,4 +1,10 @@
+'use client';
+
+import { useLocale } from 'turbopack-file-list-plugin/client';
+
 export default function Home() {
+  const { locale } = useLocale();
+
   return (
     <main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
       <h1>Turbopack File List Plugin Demo</h1>
