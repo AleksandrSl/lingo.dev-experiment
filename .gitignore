@@ -7,3 +7,4 @@ build
 .DS_Store
 .env*.local
 .turbopack-file-tracker.tmp
+.text-extraction.tmp
