@@ -118,6 +118,29 @@ module.exports.t = t;
 `;
 
   fs.writeFileSync(filePath, content, 'utf-8');
+
+  // Also update the TypeScript module in the package source
+  // This allows the runtime to import the strings at build time
+  const packageRoot = path.join(projectRoot, '../../packages/turbopack-file-list-plugin');
+  const tsFilePath = path.join(packageRoot, 'src', 'strings-data.ts');
+
+  // Make sure we can write to the package source
+  if (fs.existsSync(packageRoot)) {
+    const tsContent = `/**
+ * Extracted strings database
+ * Generated automatically by text-extraction-loader
+ * DO NOT EDIT MANUALLY
+ *
+ * This file is used by the runtime to access strings on both client and server.
+ */
+
+export const stringsData: Record<string, any> = ${JSON.stringify(database, null, 2)};
+
+export type StringsDatabase = typeof stringsData;
+`;
+
+    fs.writeFileSync(tsFilePath, tsContent, 'utf-8');
+  }
 }
 
 /**
