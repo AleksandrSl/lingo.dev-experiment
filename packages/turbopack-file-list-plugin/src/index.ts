@@ -25,24 +25,146 @@ export class TurbopackFileListPlugin {
 }
 
 /**
- * Recursively collects all files in a directory
+ * Finds the monorepo root by looking for pnpm-workspace.yaml or package.json with workspaces
  */
-function collectFiles(dir: string, fileList: string[] = [], baseDir: string = dir): string[] {
-  const files = fs.readdirSync(dir);
+function findMonorepoRoot(startDir: string): string {
+  let currentDir = startDir;
 
-  files.forEach((file) => {
-    const filePath = path.join(dir, file);
-    const stat = fs.statSync(filePath);
-
-    if (stat.isDirectory()) {
-      collectFiles(filePath, fileList, baseDir);
-    } else {
-      const relativePath = path.relative(baseDir, filePath);
-      fileList.push(relativePath);
+  while (true) {
+    // Check for pnpm-workspace.yaml
+    if (fs.existsSync(path.join(currentDir, 'pnpm-workspace.yaml'))) {
+      return currentDir;
     }
-  });
 
-  return fileList;
+    // Check for package.json with workspaces field
+    const pkgPath = path.join(currentDir, 'package.json');
+    if (fs.existsSync(pkgPath)) {
+      try {
+        const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+        if (pkg.workspaces) {
+          return currentDir;
+        }
+      } catch (error) {
+        // Continue searching
+      }
+    }
+
+    // Move to parent directory
+    const parentDir = path.dirname(currentDir);
+    if (parentDir === currentDir) {
+      // Reached filesystem root, return original directory
+      return startDir;
+    }
+    currentDir = parentDir;
+  }
+}
+
+/**
+ * Decodes a Turbopack chunk filename to extract the original source file path
+ * Example: "apps_web_src_app_layout_tsx_a4dff4b0._.js" -> "apps/web/src/app/layout.tsx"
+ */
+function decodeChunkFilename(chunkName: string): string | null {
+  // Remove the hash suffix and extension
+  // Example: apps_web_src_app_layout_tsx_a4dff4b0._.js -> apps_web_src_app_layout_tsx
+  const withoutExt = chunkName.replace(/\.[^.]+$/, '');  // Remove .js
+  const withoutUnderscore = withoutExt.replace(/\._$/, '');  // Remove ._
+  let withoutHash = withoutUnderscore.replace(/_[a-f0-9]{8}$/, '');  // Remove _a4dff4b0
+
+  // Convert underscores to path separators and add proper extension
+  // Detect the file type from the pattern
+  let ext = '';
+  if (withoutHash.endsWith('_tsx')) {
+    ext = '.tsx';
+    withoutHash = withoutHash.slice(0, -4);
+  } else if (withoutHash.endsWith('_ts')) {
+    ext = '.ts';
+    withoutHash = withoutHash.slice(0, -3);
+  } else if (withoutHash.endsWith('_jsx')) {
+    ext = '.jsx';
+    withoutHash = withoutHash.slice(0, -4);
+  } else if (withoutHash.endsWith('_js')) {
+    ext = '.js';
+    withoutHash = withoutHash.slice(0, -3);
+  } else if (withoutHash.endsWith('_css')) {
+    ext = '.css';
+    withoutHash = withoutHash.slice(0, -4);
+  }
+
+  if (!ext) {
+    return null;
+  }
+
+  // Convert underscores to path separators
+  const sourcePath = withoutHash.replace(/_/g, '/') + ext;
+
+  return sourcePath;
+}
+
+/**
+ * Extracts source files from Next.js build trace files
+ */
+function extractSourceFilesFromTrace(traceFile: string, projectRoot: string): string[] {
+  const sourceFiles = new Set<string>();
+
+  try {
+    const traceData = JSON.parse(fs.readFileSync(traceFile, 'utf-8'));
+    const traceDir = path.dirname(traceFile);
+
+    // Trace files contain a list of all files that were accessed during the build
+    if (traceData.files && Array.isArray(traceData.files)) {
+      traceData.files.forEach((relativeFilePath: string) => {
+        // Check if this is a chunk file that encodes a source file path
+        const fileName = path.basename(relativeFilePath);
+
+        // Look for chunk files in the ssr directory
+        if (relativeFilePath.includes('chunks/ssr/') && fileName.includes('_')) {
+          const decodedPath = decodeChunkFilename(fileName);
+          if (decodedPath) {
+            // Verify the file actually exists
+            const fullPath = path.join(projectRoot, decodedPath);
+            if (fs.existsSync(fullPath)) {
+              sourceFiles.add(decodedPath);
+            }
+          }
+        }
+      });
+    }
+  } catch (error) {
+    console.warn(`Warning: Could not parse trace file ${traceFile}:`, error);
+  }
+
+  return Array.from(sourceFiles);
+}
+
+/**
+ * Collects all trace files from the .next directory
+ */
+function collectTraceFiles(nextDir: string): string[] {
+  const traceFiles: string[] = [];
+
+  if (!fs.existsSync(nextDir)) {
+    return traceFiles;
+  }
+
+  function walk(dir: string) {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+
+      if (entry.isDirectory()) {
+        // Skip cache directory to avoid unnecessary processing
+        if (entry.name !== 'cache') {
+          walk(fullPath);
+        }
+      } else if (entry.name.endsWith('.nft.json')) {
+        traceFiles.push(fullPath);
+      }
+    }
+  }
+
+  walk(nextDir);
+  return traceFiles;
 }
 
 /**
@@ -60,61 +182,40 @@ export async function generateFileList(
     return;
   }
 
+  // Find the monorepo root for resolving source file paths
+  const monorepoRoot = findMonorepoRoot(buildDir);
+  console.log(`Using monorepo root: ${monorepoRoot}`);
+
   const fileList: {
     buildTime: string;
-    files: {
-      buildOutput: string[];
-      static: string[];
-      server: string[];
-      all: string[];
-    };
+    sourceFiles: string[];
     stats: {
-      totalFiles: number;
-      buildOutputFiles: number;
-      staticFiles: number;
-      serverFiles: number;
+      totalSourceFiles: number;
     };
   } = {
     buildTime: new Date().toISOString(),
-    files: {
-      buildOutput: [],
-      static: [],
-      server: [],
-      all: [],
-    },
+    sourceFiles: [],
     stats: {
-      totalFiles: 0,
-      buildOutputFiles: 0,
-      staticFiles: 0,
-      serverFiles: 0,
+      totalSourceFiles: 0,
     },
   };
 
-  // Collect build output files
-  const staticDir = path.join(nextDir, 'static');
-  if (fs.existsSync(staticDir)) {
-    fileList.files.buildOutput = collectFiles(staticDir);
-    fileList.stats.buildOutputFiles = fileList.files.buildOutput.length;
+  // Collect all trace files from the .next directory
+  const traceFiles = collectTraceFiles(nextDir);
+
+  console.log(`\nFound ${traceFiles.length} trace files to analyze...`);
+
+  // Extract source files from all trace files
+  const allSourceFiles = new Set<string>();
+
+  for (const traceFile of traceFiles) {
+    const sourceFiles = extractSourceFilesFromTrace(traceFile, monorepoRoot);
+    sourceFiles.forEach((file) => allSourceFiles.add(file));
   }
 
-  // Collect server files
-  const serverDir = path.join(nextDir, 'server');
-  if (fs.existsSync(serverDir)) {
-    fileList.files.server = collectFiles(serverDir);
-    fileList.stats.serverFiles = fileList.files.server.length;
-  }
-
-  // Collect static files from public directory
-  const publicDir = path.join(buildDir, 'public');
-  if (fs.existsSync(publicDir)) {
-    fileList.files.static = collectFiles(publicDir);
-    fileList.stats.staticFiles = fileList.files.static.length;
-  }
-
-  // Collect all .next files
-  fileList.files.all = collectFiles(nextDir);
-
-  fileList.stats.totalFiles = fileList.files.all.length;
+  // Convert Set to sorted array
+  fileList.sourceFiles = Array.from(allSourceFiles).sort();
+  fileList.stats.totalSourceFiles = fileList.sourceFiles.length;
 
   // Write the file list to the specified output path
   const fullOutputPath = path.join(buildDir, outputPath);
@@ -127,10 +228,18 @@ export async function generateFileList(
   fs.writeFileSync(fullOutputPath, JSON.stringify(fileList, null, 2));
 
   console.log(`\n✓ File list generated at: ${outputPath}`);
-  console.log(`  Total files tracked: ${fileList.stats.totalFiles}`);
-  console.log(`  Build output files: ${fileList.stats.buildOutputFiles}`);
-  console.log(`  Server files: ${fileList.stats.serverFiles}`);
-  console.log(`  Static files: ${fileList.stats.staticFiles}\n`);
+  console.log(`  Total source files tracked: ${fileList.stats.totalSourceFiles}`);
+  console.log(`\nSample files included in build:`);
+
+  // Show first 10 files as examples
+  const sampleFiles = fileList.sourceFiles.slice(0, 10);
+  sampleFiles.forEach((file) => console.log(`    ${file}`));
+
+  if (fileList.sourceFiles.length > 10) {
+    console.log(`    ... and ${fileList.sourceFiles.length - 10} more files\n`);
+  } else {
+    console.log('');
+  }
 }
 
 /**
