@@ -216,3 +216,12 @@ export const textExtractionLoaderPath = require.resolve('./text-extraction-loade
 
 // Export string extraction functions
 export { consolidateStrings } from './strings-manager';
+
+// Export localization components and utilities
+export { LocaleProvider, useLocale, type Locale } from './locale-context';
+export { LanguageSwitcher } from './language-switcher';
+export { LocaleSync } from './locale-sync';
+export { Text } from './text';
+export { useTranslate } from './use-translate';
+export { t, setLocale, getLocale } from './runtime';
+export { pseudolocalize } from './pseudolocalize';

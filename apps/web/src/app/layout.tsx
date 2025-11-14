@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { LocaleProvider, LanguageSwitcher, LocaleSync } from 'turbopack-file-list-plugin';
 
 export const metadata: Metadata = {
   title: 'Turbopack File List Demo',
@@ -13,7 +14,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <LocaleProvider>
+          <LocaleSync />
+          <LanguageSwitcher />
+          {children}
+        </LocaleProvider>
+      </body>
     </html>
   );
 }

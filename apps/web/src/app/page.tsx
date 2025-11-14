@@ -1,13 +1,19 @@
+'use client';
+
+import { useLocale } from 'turbopack-file-list-plugin';
+import { t } from 'turbopack-file-list-plugin/dist/runtime';
+
 export default function Home() {
+  const { locale } = useLocale();
+
   return (
     <main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
-      <h1>Turbopack File List Plugin Demo</h1>
+      <h1>{t('e26aa56ec27b4d9c', locale)}</h1>
       <p>
-        This Next.js app is built with Turbopack and includes a custom plugin
-        that generates a list of all files used in the build.
+        {t('43f5b835bb5048b4', locale)}
       </p>
       <p>
-        After building, check <code>.next/list.json</code> for the file list.
+        {t('bde3a871ff902beb', locale)} <code>{t('0517b43d09692dd0', locale)}</code> {t('a0defe72fea87146', locale)}
       </p>
     </main>
   );
