@@ -1,10 +1,18 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
+import { pseudolocalize } from './pseudolocalize';
+
+export type Locale = 'en' | 'ru' | 'pseudo';
 
 export interface ExtractedString {
   text: string;
   hash: string;
+  translations: {
+    en: string;
+    ru: string;
+    pseudo: string;
+  };
   context: {
     file: string;
     component: string;
@@ -82,15 +90,27 @@ const strings = ${JSON.stringify(database, null, 2)};
 module.exports = strings;
 
 /**
- * Runtime function to get text by hash
+ * Runtime function to get text by hash with locale support
+ * @param {string} hash - The hash of the string
+ * @param {string} locale - The locale to use (en, ru, pseudo)
+ * @returns {string} The translated text
  */
-function t(hash) {
+function t(hash, locale = 'en') {
   const entry = strings[hash];
   if (!entry) {
     console.warn(\`[t] String not found for hash: \${hash}\`);
     return \`[missing: \${hash}]\`;
   }
-  return entry.text;
+
+  // Return the translation for the specified locale
+  const translation = entry.translations[locale];
+
+  // Fall back to English if translation is empty
+  if (!translation || translation === '') {
+    return entry.translations.en || entry.text;
+  }
+
+  return translation;
 }
 
 // Also export the t function
@@ -124,6 +144,11 @@ export function addExtractedString(
   database[hash] = {
     text,
     hash,
+    translations: {
+      en: text,
+      ru: '',
+      pseudo: pseudolocalize(text),
+    },
     context: {
       file,
       component,
@@ -160,6 +185,11 @@ export function appendToTempStrings(
   const entry: ExtractedString = {
     text,
     hash,
+    translations: {
+      en: text, // Original text is English
+      ru: '', // Empty, to be filled later
+      pseudo: pseudolocalize(text), // Auto-generate pseudolocalization
+    },
     context: {
       file,
       component,
@@ -186,6 +216,8 @@ export function consolidateStrings(projectRoot: string): void {
     return;
   }
 
+  // Read existing database to preserve manual translations
+  const existingDatabase = readStringsDatabase(projectRoot);
   const database: StringsDatabase = {};
 
   try {
@@ -195,6 +227,16 @@ export function consolidateStrings(projectRoot: string): void {
     for (const line of lines) {
       try {
         const entry: ExtractedString = JSON.parse(line);
+
+        // If this hash exists in the old database, preserve manual translations
+        const existing = existingDatabase[entry.hash];
+        if (existing && existing.translations) {
+          // Preserve non-empty Russian translations
+          if (existing.translations.ru && existing.translations.ru !== '') {
+            entry.translations.ru = existing.translations.ru;
+          }
+        }
+
         database[entry.hash] = entry;
       } catch (error) {
         console.warn('[strings-manager] Failed to parse line:', line);

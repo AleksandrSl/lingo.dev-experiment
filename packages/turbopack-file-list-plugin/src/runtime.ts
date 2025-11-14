@@ -1,11 +1,30 @@
 /**
- * Runtime module for text translation function
+ * Runtime module for text translation function with locale support
  * This module is imported by transformed JSX/TSX files
  */
+
+export type Locale = 'en' | 'ru' | 'pseudo';
 
 // In-memory store for strings
 let stringsData: Record<string, any> = {};
 let isLoaded = false;
+
+// Current locale (can be set from outside)
+let currentLocale: Locale = 'en';
+
+/**
+ * Sets the current locale for server-side rendering
+ */
+export function setLocale(locale: Locale): void {
+  currentLocale = locale;
+}
+
+/**
+ * Gets the current locale
+ */
+export function getLocale(): Locale {
+  return currentLocale;
+}
 
 /**
  * Loads the extracted strings from the file system (server-side only)
@@ -37,9 +56,9 @@ function loadStrings(): void {
 }
 
 /**
- * Translation function that looks up text by hash
+ * Translation function that looks up text by hash with locale support
  */
-export function t(hash: string): string {
+export function t(hash: string, locale?: Locale): string {
   // Try to load strings on first use
   if (!isLoaded && typeof window === 'undefined') {
     loadStrings();
@@ -52,6 +71,22 @@ export function t(hash: string): string {
     return `[${hash.substring(0, 8)}]`;
   }
 
+  // Use provided locale or current locale
+  const targetLocale = locale || currentLocale;
+
+  // If entry has translations, use them
+  if (entry.translations) {
+    const translation = entry.translations[targetLocale];
+
+    // Fall back to English if translation is empty
+    if (!translation || translation === '') {
+      return entry.translations.en || entry.text;
+    }
+
+    return translation;
+  }
+
+  // Legacy format support
   return entry.text || entry;
 }
 
