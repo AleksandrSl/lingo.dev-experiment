@@ -1,0 +1,27 @@
+{
+  "name": "turbopack-file-list-plugin",
+  "version": "1.0.0",
+  "description": "A plugin for Next.js with Turbopack to generate a list of all files used in the build",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "nextjs",
+    "turbopack",
+    "plugin",
+    "build"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  },
+  "peerDependencies": {
+    "next": ">=14.0.0"
+  }
+}
