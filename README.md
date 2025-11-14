@@ -35,10 +35,14 @@ A monorepo demonstrating a Next.js app with Turbopack and a custom plugin that g
 
 ```bash
 # Install dependencies for all packages
+# The plugin will be automatically built during install
 pnpm install
+```
 
-# Build the plugin
-pnpm --filter turbopack-file-list-plugin build
+**Note**: The `turbopack-file-list-plugin` package is automatically built when you run `pnpm install` thanks to the `prepare` script. If you need to rebuild it manually, you can run:
+
+```bash
+pnpm build:plugin
 ```
 
 ### Development
@@ -69,9 +73,10 @@ After building, check `apps/web/.next/list.json` for the complete file list.
 
 The `turbopack-file-list-plugin` package provides:
 
-1. **Next.js Plugin Wrapper** (`withFileListPlugin`): Works with webpack builds
-2. **CLI Tool**: Generates file list post-build for Turbopack
-3. **Programmatic API** (`generateFileList`): Can be used in custom scripts
+1. **File Tracker Loader**: Tracks all files processed during the build
+2. **Text Extraction Loader**: AST-based extraction of JSX/TSX text content for i18n
+3. **CLI Tool**: Generates file list post-build for Turbopack
+4. **Programmatic API** (`generateFileList`): Can be used in custom scripts
 
 ### Build Process
 
