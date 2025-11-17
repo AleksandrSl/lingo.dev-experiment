@@ -5,9 +5,12 @@
   "description": "Monorepo with Next.js app and Turbopack file list plugin",
   "scripts": {
     "dev": "pnpm --filter web dev",
+    "dev:intl": "pnpm --filter intl-demo dev",
     "build": "pnpm --filter web build",
+    "build:intl": "pnpm --filter intl-demo build",
     "build:plugin": "pnpm --filter turbopack-file-list-plugin build",
-    "start": "pnpm --filter web start"
+    "start": "pnpm --filter web start",
+    "start:intl": "pnpm --filter intl-demo start"
   },
   "keywords": [],
   "author": "",

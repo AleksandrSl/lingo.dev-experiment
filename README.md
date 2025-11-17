@@ -1,16 +1,22 @@
 # Turbopack File List Monorepo
 
-A monorepo demonstrating a Next.js app with Turbopack and a custom plugin that generates a comprehensive list of all files used in the build.
+A monorepo demonstrating Next.js applications with various features including Turbopack, custom build plugins, and internationalization.
 
 ## Project Structure
 
 ```
 .
 ├── apps/
-│   └── web/              # Next.js application
+│   ├── web/              # Next.js application with Turbopack
+│   │   ├── src/
+│   │   │   └── app/      # Next.js app directory
+│   │   └── .next/        # Build output (including list.json)
+│   └── intl-demo/        # Next.js i18n demo with next-intl
 │       ├── src/
-│       │   └── app/      # Next.js app directory
-│       └── .next/        # Build output (including list.json)
+│       │   ├── app/      # Next.js app directory
+│       │   ├── components/  # React components
+│       │   └── i18n/     # i18n configuration
+│       └── messages/     # Translation files (en, es, de)
 ├── packages/
 │   └── turbopack-file-list-plugin/  # Custom build plugin
 └── package.json          # Workspace root
@@ -21,6 +27,7 @@ A monorepo demonstrating a Next.js app with Turbopack and a custom plugin that g
 - **Monorepo Setup**: Uses pnpm workspaces for efficient package management
 - **Next.js 15**: Latest Next.js with Turbopack support
 - **Custom Build Plugin**: Generates `list.json` with all build files
+- **Internationalization**: Full i18n demo app using next-intl with server and client components
 - **TypeScript**: Full TypeScript support across the monorepo
 - **Build Analytics**: Detailed categorization of build artifacts
 
@@ -48,24 +55,58 @@ pnpm build:plugin
 ### Development
 
 ```bash
-# Start the Next.js dev server with Turbopack
+# Start the web app (main Next.js app with Turbopack)
 pnpm dev
 
 # Or run from the web app directory
 pnpm --filter web dev
+
+# Start the i18n demo app
+pnpm dev:intl
+
+# Or run from the intl-demo directory
+pnpm --filter intl-demo dev
 ```
+
+The web app runs on [http://localhost:3000](http://localhost:3000)
+The intl-demo app runs on [http://localhost:3001](http://localhost:3001)
 
 ### Production Build
 
 ```bash
-# Build the Next.js app and generate file list
+# Build the web app and generate file list
 pnpm build
 
 # Or run from the web app directory
 pnpm --filter web build
+
+# Build the i18n demo app
+pnpm build:intl
+
+# Or run from the intl-demo directory
+pnpm --filter intl-demo build
 ```
 
-After building, check `apps/web/.next/list.json` for the complete file list.
+After building the web app, check `apps/web/.next/list.json` for the complete file list.
+
+## Applications
+
+### Web App (`apps/web`)
+
+The main Next.js application demonstrating Turbopack integration with a custom file list plugin.
+
+### Internationalization Demo (`apps/intl-demo`)
+
+A comprehensive demonstration of internationalization (i18n) using the latest **next-intl** library. Features:
+
+- **Multiple Locales**: Support for English, Spanish, and German
+- **Server Components**: Translation in server-rendered components
+- **Client Components**: Interactive components with real-time translation updates
+- **Language Switcher**: Easy switching between supported languages
+- **Middleware**: Automatic locale detection and routing
+- **Static Rendering**: Optimized for performance with static page generation
+
+See [apps/intl-demo/README.md](apps/intl-demo/README.md) for detailed documentation.
 
 ## How It Works
 
