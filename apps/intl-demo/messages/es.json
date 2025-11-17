@@ -1,0 +1,50 @@
+{
+  "HomePage": {
+    "title": "Bienvenido a Next.js con next-intl",
+    "description": "Esta demostración muestra la internacionalización con componentes de servidor y cliente",
+    "serverSection": "Componentes de Servidor",
+    "clientSection": "Componentes de Cliente",
+    "switchLanguage": "Cambiar Idioma"
+  },
+  "ServerComponent": {
+    "title": "Ejemplo de Componente de Servidor",
+    "description": "Este componente se renderiza en el servidor",
+    "currentTime": "Hora actual del servidor: {time}",
+    "benefits": {
+      "title": "Beneficios de los Componentes de Servidor:",
+      "seo": "Mejor SEO - las traducciones están disponibles en tiempo de construcción/renderizado",
+      "performance": "Mejor rendimiento - no se necesita JavaScript para las traducciones",
+      "security": "Seguro - puede acceder a recursos backend directamente"
+    }
+  },
+  "ClientComponent": {
+    "title": "Ejemplo de Componente de Cliente",
+    "description": "Este componente se renderiza en el cliente",
+    "counter": "Contador",
+    "count": "Cuenta actual: {count}",
+    "increment": "Incrementar",
+    "decrement": "Decrementar",
+    "reset": "Reiniciar",
+    "benefits": {
+      "title": "Beneficios de los Componentes de Cliente:",
+      "interactive": "Interactivo - puede usar hooks y estado de React",
+      "dynamic": "Dinámico - las traducciones se actualizan sin recargar la página",
+      "realtime": "Tiempo real - perfecto para interacciones del usuario"
+    }
+  },
+  "Navigation": {
+    "home": "Inicio",
+    "about": "Acerca de",
+    "contact": "Contacto"
+  },
+  "Common": {
+    "language": "Idioma",
+    "english": "Inglés",
+    "spanish": "Español",
+    "german": "Alemán",
+    "greeting": "¡Hola, {name}!",
+    "itemCount": "Tienes {count, plural, =0 {ningún artículo} =1 {un artículo} other {# artículos}}",
+    "price": "Precio: {amount, number, currency}",
+    "date": "Fecha: {date, date, long}"
+  }
+}

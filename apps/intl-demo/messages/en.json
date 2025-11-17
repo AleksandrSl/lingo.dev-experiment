@@ -1,0 +1,50 @@
+{
+  "HomePage": {
+    "title": "Welcome to Next.js with next-intl",
+    "description": "This demo showcases internationalization with both server and client components",
+    "serverSection": "Server Components",
+    "clientSection": "Client Components",
+    "switchLanguage": "Switch Language"
+  },
+  "ServerComponent": {
+    "title": "Server Component Example",
+    "description": "This component is rendered on the server",
+    "currentTime": "Current server time: {time}",
+    "benefits": {
+      "title": "Benefits of Server Components:",
+      "seo": "Better SEO - translations are available at build/render time",
+      "performance": "Better performance - no JavaScript needed for translations",
+      "security": "Secure - can access backend resources directly"
+    }
+  },
+  "ClientComponent": {
+    "title": "Client Component Example",
+    "description": "This component is rendered on the client",
+    "counter": "Counter",
+    "count": "Current count: {count}",
+    "increment": "Increment",
+    "decrement": "Decrement",
+    "reset": "Reset",
+    "benefits": {
+      "title": "Benefits of Client Components:",
+      "interactive": "Interactive - can use React hooks and state",
+      "dynamic": "Dynamic - translations update without page reload",
+      "realtime": "Real-time - perfect for user interactions"
+    }
+  },
+  "Navigation": {
+    "home": "Home",
+    "about": "About",
+    "contact": "Contact"
+  },
+  "Common": {
+    "language": "Language",
+    "english": "English",
+    "spanish": "Spanish",
+    "german": "German",
+    "greeting": "Hello, {name}!",
+    "itemCount": "You have {count, plural, =0 {no items} =1 {one item} other {# items}}",
+    "price": "Price: {amount, number, currency}",
+    "date": "Date: {date, date, long}"
+  }
+}

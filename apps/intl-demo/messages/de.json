@@ -1,0 +1,50 @@
+{
+  "HomePage": {
+    "title": "Willkommen bei Next.js mit next-intl",
+    "description": "Diese Demo zeigt Internationalisierung mit Server- und Client-Komponenten",
+    "serverSection": "Server-Komponenten",
+    "clientSection": "Client-Komponenten",
+    "switchLanguage": "Sprache wechseln"
+  },
+  "ServerComponent": {
+    "title": "Beispiel für Server-Komponente",
+    "description": "Diese Komponente wird auf dem Server gerendert",
+    "currentTime": "Aktuelle Serverzeit: {time}",
+    "benefits": {
+      "title": "Vorteile von Server-Komponenten:",
+      "seo": "Besseres SEO - Übersetzungen sind zur Build-/Renderzeit verfügbar",
+      "performance": "Bessere Leistung - kein JavaScript für Übersetzungen erforderlich",
+      "security": "Sicher - kann direkt auf Backend-Ressourcen zugreifen"
+    }
+  },
+  "ClientComponent": {
+    "title": "Beispiel für Client-Komponente",
+    "description": "Diese Komponente wird auf dem Client gerendert",
+    "counter": "Zähler",
+    "count": "Aktueller Zählerstand: {count}",
+    "increment": "Erhöhen",
+    "decrement": "Verringern",
+    "reset": "Zurücksetzen",
+    "benefits": {
+      "title": "Vorteile von Client-Komponenten:",
+      "interactive": "Interaktiv - kann React-Hooks und State verwenden",
+      "dynamic": "Dynamisch - Übersetzungen werden ohne Seitenneuladung aktualisiert",
+      "realtime": "Echtzeit - perfekt für Benutzerinteraktionen"
+    }
+  },
+  "Navigation": {
+    "home": "Startseite",
+    "about": "Über uns",
+    "contact": "Kontakt"
+  },
+  "Common": {
+    "language": "Sprache",
+    "english": "Englisch",
+    "spanish": "Spanisch",
+    "german": "Deutsch",
+    "greeting": "Hallo, {name}!",
+    "itemCount": "Sie haben {count, plural, =0 {keine Artikel} =1 {einen Artikel} other {# Artikel}}",
+    "price": "Preis: {amount, number, currency}",
+    "date": "Datum: {date, date, long}"
+  }
+}
